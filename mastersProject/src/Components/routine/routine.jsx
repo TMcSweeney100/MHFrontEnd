@@ -4,7 +4,7 @@ import { useAuth } from "../contexts/authContexts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { Button } from "../ui/button";
 
-// If you don't have the @ alias, use: import { get, post, del } from "../../lib/api";
+// import API helpers (these prepend VITE_API_BASE_URL automatically)
 import { get, post, del } from "@/lib/api";
 
 const ROUTINE_PATH = "/routine";
@@ -51,7 +51,7 @@ const Routine = () => {
   const saveRoutine = async (updatedActivities) => {
     if (!currentUser?.uid) return;
     try {
-      await post(ROUTINE_PATH, {
+      await post(`${ROUTINE_PATH}`, {
         userId: currentUser.uid,
         ...updatedActivities,
       });

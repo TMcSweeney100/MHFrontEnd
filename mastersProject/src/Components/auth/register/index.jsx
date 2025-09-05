@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { doCreateUserWithEmailAndPassword } from '../../firebase/auth';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { getAuth } from "firebase/auth";
+import { get, post, del } from "@/lib/api";
 
-import { post } from '../../lib/api';
 const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

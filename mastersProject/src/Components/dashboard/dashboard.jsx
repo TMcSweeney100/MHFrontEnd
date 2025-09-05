@@ -2,6 +2,7 @@ import React from "react";
 import { useAuth } from "../contexts/authContexts";
 import {  useNavigate } from "react-router-dom";
 
+
 function Dashboard() {
     const {currentUser} = useAuth();
     var navigate = useNavigate();
@@ -14,6 +15,8 @@ function Dashboard() {
      <>
         <h1> Welcome back {currentUser.email} </h1>
         <button onClick={handleNavigate}>Routine</button>
+
+
         </>
         
     );

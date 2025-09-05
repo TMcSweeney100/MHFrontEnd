@@ -32,60 +32,33 @@ const data = {
     avatar: "/avatars/shadcn.jpg",
   },
   teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
+   
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
+      title: "Routine",
       icon: SquareTerminal,
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
+          title: "Routine",
+          url: "/routine",
+        }
       ],
     },
     {
-      title: "Models",
-      url: "#",
+      title: "Moood",
+      url: "/mood",
       icon: Bot,
       items: [
         {
-          title: "Genesis",
-          url: "#",
+          title: "Mood Tracker",
+          url: "/mood",
         },
         {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
+          title: "Mood Insights",
+          url: "/moodGraph",
+        }
       ],
     },
     {
@@ -94,31 +67,23 @@ const data = {
       icon: BookOpen,
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Chat Assistant",
+          url: "/chat",
         },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
+          {
+          title: "FAQ",
+          url: "/faq",
+        }
       ],
     },
     {
-      title: "Settings",
+      title: "Alcohol",
       url: "#",
       icon: Settings2,
       items: [
         {
-          title: "General",
-          url: "#",
+          title: "Landing",
+          url: "/alcohol",
         },
         {
           title: "Team",
@@ -136,21 +101,7 @@ const data = {
     },
   ],
   projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
+    
   ],
 }
 

@@ -8,6 +8,11 @@
   line-height: 1.5;
   font-weight: 400;
 
+   width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
   background-color: #242424;
@@ -52,7 +57,7 @@ button {
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  
 }
 button:focus,
 button:focus-visible {
@@ -71,7 +76,6 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
-
 
 
 @layer base {
@@ -94,7 +98,7 @@ button:focus-visible {
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
+   --ring: 217.2 91.2% 59.8%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -154,5 +158,16 @@ button:focus-visible {
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  *:focus,
+  *:focus-visible,
+  *:hover {
+    outline: none !important;
+    box-shadow: none !important;
+    --tw-ring-shadow: 0 0 #0000 !important;
+    --tw-ring-color: transparent !important;
   }
 }

@@ -9,9 +9,5 @@ const __dirname = path.dirname(__filename)
 
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, 'src') // now you can use @/lib, @/components, etc.
-    }
-  }
+  resolve: { alias: { '@': path.resolve(__dirname, 'src') } }
 })

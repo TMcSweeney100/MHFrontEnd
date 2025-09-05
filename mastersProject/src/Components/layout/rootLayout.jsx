@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom"
-import { SidebarProvider, SidebarInset,SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarInset,SidebarTrigger } from "@/Components/ui/sidebar"
 import { AppSidebar } from "@/Components/app-sidebar"
 
 

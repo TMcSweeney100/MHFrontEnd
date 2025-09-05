@@ -1,10 +1,10 @@
 import React, { useState } from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/Components/ui/button"
 import {
   Popover,
   PopoverTrigger,
   PopoverContent
-} from "@/components/ui/popover"
+} from "@/Components/ui/popover"
 import {
   Command,
   CommandEmpty,
@@ -12,7 +12,7 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/Components/ui/command"
 
 
 

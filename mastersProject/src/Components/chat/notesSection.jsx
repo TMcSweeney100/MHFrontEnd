@@ -1,13 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../contexts/authContexts";
 
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/Components/ui/card";
+import { Button } from "@/Components/ui/button";
+import { Input } from "@/Components/ui/input";
+import { Textarea } from "@/Components/ui/textarea";
+import { ScrollArea } from "@/Components/ui/scroll-area";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/Components/ui/tabs";
+import { Badge } from "@/Components/ui/badge";
 import { toast } from "sonner";
 import {
   Plus, Download, Copy, RefreshCcw, Search, Loader2, ChevronDown, ChevronUp,

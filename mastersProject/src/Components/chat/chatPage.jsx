@@ -1,283 +1,374 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Button } from "@/Components/ui/button";
+import { Textarea } from "@/Components/ui/textarea";
+import {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/Components/ui/card";
+import { ScrollArea } from "@/Components/ui/scroll-area";
+import NotesSection from "./notesSection";
 import { useAuth } from "../contexts/authContexts";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Button } from "../ui/button";
+import { Badge } from "@/Components/ui/badge";
+import { toast } from "sonner";
+import { Send, Copy, RefreshCcw, Bookmark, Loader2, ThumbsUp, ThumbsDown, AlertCircle } from "lucide-react";
 
-// If you don't have the @ alias, use: import { get, post, del } from "../../lib/api";
-import { get, post, del } from "@/lib/api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
-const ROUTINE_PATH = "/routine";
+// ✅ env-based API helper (works on Vercel + local)
+//    if you don't have the @ alias, use: import { post } from "../lib/api";
+import { post } from "@/lib/api";
 
-const Routine = () => {
-  const navigate = useNavigate();
+function ChatPage() {
   const { currentUser } = useAuth();
+  const [messages, setMessages] = useState([
+    { sender: "assistant", text: "Hey! I’m your study & wellbeing helper. Ask me anything.", ts: Date.now() },
+  ]);
+  const [input, setInput] = useState("");
+  const [mode, setMode] = useState("study"); // 'study' | 'wellbeing' | 'motivation'
+  const [loading, setLoading] = useState(false);
 
-  const handleNavigation = () => navigate("/dashboard");
+  const bottomRef = useRef(null);
 
-  const [activities, setActivities] = useState({
-    morning: [],
-    afternoon: [],
-    evening: [],
-  });
+  const SUGGESTIONS = [
+    "Create a 7-day study plan for my modules.",
+    "Explain cognitive behavioural techniques in simple terms.",
+    "Help me break down a big assignment into steps.",
+    "Give me a short pre-exam calming routine.",
+  ];
 
-  const [showAddActivityMorn, setShowAddActivityMorn] = useState(false);
-  const [showAddActivityEve, setShowAddActivityEve] = useState(false);
-  const [showAddActivityAfter, setShowAddActivityAfter] = useState(false);
+  const modePrompt = {
+    study:
+      "You are a helpful study assistant. Be concise, structured, and give step-by-step plans when helpful.",
+    wellbeing:
+      "You are a supportive mental health assistant for students. Be empathetic, practical, and non-judgmental.",
+    motivation:
+      "You are a motivational coach for students. Be encouraging, specific, and action-oriented.",
+  };
 
-  const [newActivity, setNewActivity] = useState({
-    name: "",
-    timeOfDay: "morning",
-  });
-
-  // fetch existing routine
   useEffect(() => {
-    const fetchRoutine = async () => {
-      if (!currentUser?.uid) return;
-      try {
-        const data = await get(`${ROUTINE_PATH}/${currentUser.uid}`);
-        setActivities({
-          morning: data.morning || [],
-          afternoon: data.afternoon || [],
-          evening: data.evening || [],
-        });
-      } catch (err) {
-        console.error("Fetch routine error:", err);
-      }
-    };
-    fetchRoutine();
-  }, [currentUser]);
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
-  const saveRoutine = async (updatedActivities) => {
-    if (!currentUser?.uid) return;
+  const handleSend = async (overrideText) => {
+    const text = (overrideText ?? input).trim();
+    if (!text) return;
+
+    const userMessage = { sender: "user", text, ts: Date.now() };
+    setMessages((prev) => [...prev, userMessage]);
+    setInput("");
+    setLoading(true);
+
     try {
-      await post(ROUTINE_PATH, {
-        userId: currentUser.uid,
-        ...updatedActivities,
-      });
-    } catch (err) {
-      console.error("Save routine error", err);
-    }
-  };
+      const payload = { message: `${modePrompt[mode]}\n\nUser: ${text}` };
 
-  const handleAddActivity = () => {
-    if (newActivity.name.trim() === "") return;
+      // ⬇️ CHANGED: use env-based helper instead of hardcoded localhost
+      const data = await post(`/chat`, payload);
 
-    setActivities((prev) => {
-      const updated = {
-        ...prev,
-        [newActivity.timeOfDay]: [
-          ...prev[newActivity.timeOfDay],
-          { name: newActivity.name, completed: false },
-        ],
+      const assistantMessage = {
+        sender: "assistant",
+        text: data.reply ?? "I’m here. How else can I help?",
+        ts: Date.now(),
       };
-      saveRoutine(updated);
-      return updated;
-    });
-
-    setNewActivity({ name: "", timeOfDay: "morning" });
-  };
-
-  const deleteTask = async (timeOfDay, index) => {
-    if (!currentUser?.uid) return;
-
-    setActivities((prev) => {
-      const updatedList = prev[timeOfDay].filter((_, i) => i !== index);
-      const updated = { ...prev, [timeOfDay]: updatedList };
-      saveRoutine(updated);
-      return updated;
-    });
-
-    try {
-      await del(`${ROUTINE_PATH}/${currentUser.uid}/${timeOfDay}/${index}`);
-    } catch (err) {
-      console.error("Delete routine error:", err);
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "assistant",
+          text: "Sorry, something went wrong. Try again in a moment.",
+          ts: Date.now(),
+          error: true,
+        },
+      ]);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleActivityCompletion = (timeOfDay, index) => {
-    setActivities((prev) => {
-      const updatedList = prev[timeOfDay].map((act, i) =>
-        i === index ? { ...act, completed: !act.completed } : act
+  const [safety, setSafety] = useState(null);
+
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    if (!last || last.sender !== "user") return;
+
+    // expand as needed
+    const risky = /\b(suicide|self-harm|hurt myself|kill myself|end my life|overdose)\b/i;
+
+    if (risky.test(last.text || "")) {
+      setSafety(
+        "If you’re in immediate danger, call emergency services (112/999 in Ireland). You’re not alone — help is available."
       );
-      const updated = { ...prev, [timeOfDay]: updatedList };
-      saveRoutine(updated);
-      return updated;
-    });
+    } else {
+      setSafety(null);
+    }
+  }, [messages]);
+
+  // optional: auto-hide after 30s
+  useEffect(() => {
+    if (!safety) return;
+    const t = setTimeout(() => setSafety(null), 30000);
+    return () => clearTimeout(t);
+  }, [safety]);
+
+  const copyText = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("Copied to clipboard");
+    } catch {
+      toast("Copy failed");
+    }
+  };
+
+  const saveAsNote = async (text) => {
+    if (!currentUser?.uid) {
+      toast("Please log in to save notes");
+      return;
+    }
+    const note = {
+      userIdString: currentUser.uid,
+      text,
+      timeStampDateTime: new Date().toISOString(),
+    };
+    try {
+      // ⬇️ CHANGED
+      await post(`/notesAI`, note);
+      toast("Saved to notes");
+      window.dispatchEvent(new Event("notes:refresh"));
+    } catch {
+      toast("Could not save note");
+    }
+  };
+
+  // ✅ Feedback sender (kept in parent so it can use currentUser)
+  const sendFeedback = async (msg, value) => {
+    try {
+      // ⬇️ CHANGED
+      await post(`/chat/feedback`, {
+        userId: currentUser?.uid ?? "anon",
+        ts: msg.ts,
+        value, // "up" | "down"
+      });
+      toast("Thanks for the feedback");
+    } catch {
+      // ignore silently
+    }
+  };
+
+  const regenerateLast = () => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].sender === "user") {
+        handleSend(messages[i].text);
+        return;
+      }
+    }
+    toast("No user message to regenerate");
   };
 
   return (
-    <div className=" ">
-      <h1 className="text-4xl font-extrabold text-center mb-8">Daily Routine</h1>
+    <div className="flex flex-row w-full h-full min-h-screen bg-muted/30 p-4 gap-4">
+      {/* Left: Chat */}
+      <div className="flex flex-col flex-1 w-1/2">
+        <Card className="flex h-full flex-col">
+          <CardHeader className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Resource Chat Assistant</CardTitle>
+                <CardDescription>
+                  Study support, wellbeing tips, and motivation — all in one place.
+                </CardDescription>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-muted-foreground">Mode</label>
+                <select
+                  className="h-9 rounded-md border bg-background px-2 text-sm"
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value)}
+                >
+                  <option value="study">Study</option>
+                  <option value="wellbeing">Wellbeing</option>
+                  <option value="motivation">Motivation</option>
+                </select>
+              </div>
+            </div>
 
-      <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
-        {["morning", "afternoon", "evening"].map((timeOfDay) => (
-          <div key={timeOfDay} className="flex-1 bg-white shadow rounded-lg p-4 flex flex-col">
-            <h2 className="text-2xl font-semibold capitalize mb-4">{timeOfDay}</h2>
+            {/* Quick suggestions */}
+            <div className="flex flex-wrap gap-2">
+              {SUGGESTIONS.map((s) => (
+                <Badge
+                  key={s}
+                  variant="secondary"
+                  className="cursor-pointer hover:ring-2 hover:ring-primary/30"
+                  onClick={() => handleSend(s)}
+                  title="Send this prompt"
+                >
+                  {s}
+                </Badge>
+              ))}
+            </div>
+          </CardHeader>
 
-            <ul className="flex-1 space-y-2 overflow-y-auto">
-              {(activities[timeOfDay].length || []) > 0 ? (
-                activities[timeOfDay].map((activity, idx) => (
-                  <li
-                    key={idx}
-                    className="group flex items-center justify-between p-2 border-b last:border-b-0 hover:bg-gray-200 rounded transition"
-                    onClick={() => toggleActivityCompletion(timeOfDay, idx)}
-                  >
-                    <label className="flex-1 flex items-center space-x-2">
-                      <span className={activity.completed ? "line-through text-gray-400" : ""}>
-                        {activity.name}
-                      </span>
-                    </label>
-                    <FontAwesomeIcon
-                      icon="trash"
-                      className="text-red-500 opacity-0 group-hover:opacity-100 cursor-pointer transition"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTask(timeOfDay, idx);
-                      }}
-                    />
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500 italic">No activities yet.</li>
+          <CardContent className="flex-1 overflow-hidden">
+            {safety && (
+              <div className="mb-3 rounded-md border border-yellow-200 bg-yellow-50 text-yellow-900 p-3 text-xs flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+                <div className="flex-1">{safety}</div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-7 px-2 text-yellow-900 hover:bg-yellow-100"
+                  onClick={() => setSafety(null)}
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
+            <ScrollArea className="h-[560px] pr-2">
+              {messages.map((msg, idx) => (
+                <MessageBubble
+                  key={idx}
+                  msg={msg}
+                  onCopy={() => copyText(msg.text)}
+                  onSave={() => msg.sender === "assistant" && saveAsNote(msg.text)}
+                  onFeedback={(value) => sendFeedback(msg, value)}
+                />
+              ))}
+
+              {/* Typing indicator */}
+              {loading && (
+                <div className="max-w-[75%] mr-auto bg-gray-100 text-gray-900 rounded-2xl p-3 mb-3 shadow-sm">
+                  <div className="text-xs opacity-70 mb-1">Assistant</div>
+                  <div className="flex gap-1 items-center">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">Thinking…</span>
+                  </div>
+                </div>
               )}
-            </ul>
 
-            <button
-              onClick={() => {
-                setNewActivity({ name: "", timeOfDay });
-                if (timeOfDay === "evening") setShowAddActivityEve(true);
-                else if (timeOfDay === "morning") setShowAddActivityMorn(true);
-                else setShowAddActivityAfter(true);
+              <div ref={bottomRef} />
+            </ScrollArea>
+          </CardContent>
+
+          <CardFooter className="flex gap-2">
+            <Textarea
+              placeholder="Ask a question… (Shift+Enter for newline)"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
               }}
-              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
-            >
-              <FontAwesomeIcon icon="fa-solid fa-plus" beatFade />
-            </button>
-          </div>
-        ))}
+              className="min-h-[44px] max-h-40"
+              disabled={loading}
+            />
+            <Button onClick={() => handleSend()} disabled={loading || !input.trim()}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
+            <Button variant="outline" onClick={regenerateLast} disabled={loading}>
+              <RefreshCcw className="h-4 w-4" />
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
 
-      {/* Morning modal */}
-      {showAddActivityMorn && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold">Add New Activity</h3>
-            <input
-              type="text"
-              placeholder="Activity Name"
-              value={newActivity.name}
-              onChange={(e) =>
-                setNewActivity({ ...newActivity, name: e.target.value, timeOfDay: "morning" })
-              }
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  handleAddActivity();
-                  setShowAddActivityMorn(false);
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setShowAddActivityMorn(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Afternoon modal */}
-      {showAddActivityAfter && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold">Add New Activity</h3>
-            <input
-              type="text"
-              placeholder="Activity Name"
-              value={newActivity.name}
-              onChange={(e) => {
-                setNewActivity({ ...newActivity, name: e.target.value, timeOfDay: "afternoon" });
-              }}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  handleAddActivity();
-                  setShowAddActivityAfter(false);
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setShowAddActivityAfter(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Evening modal */}
-      {showAddActivityEve && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold">Add New Evening Activity</h3>
-            <input
-              type="text"
-              placeholder="Activity Name"
-              value={newActivity.name}
-              onChange={(e) =>
-                setNewActivity({ ...newActivity, name: e.target.value, timeOfDay: "evening" })
-              }
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  handleAddActivity();
-                  setShowAddActivityEve(false);
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setShowAddActivityEve(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Dashboard navigation */}
-      <div className="absolute top-5 left-6 mt-2 mb-2 ">
-        <button
-          onClick={handleNavigation}
-          className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-900 transition"
-        >
-          <FontAwesomeIcon icon="fa-solid fa-left-long" />
-        </button>
-      </div>
-
-      <div>
-        <Button variant="outline">Click Me</Button>
+      {/* Right: Notes */}
+      <div className="flex flex-col flex-1 w-1/2">
+        <Card className="h-full">
+          <NotesSection />
+        </Card>
       </div>
     </div>
   );
-};
+}
 
-export default Routine;
+function MessageBubble({ msg, onCopy, onSave, onFeedback }) {
+  const [fb, setFb] = useState(null); // 'up' | 'down'
+  const isUser = msg.sender === "user";
+
+  return (
+    <div
+      className={`max-w-[75%] rounded-2xl p-3 mb-3 shadow-sm ${
+        isUser ? "ml-auto bg-blue-500 text-white" : "mr-auto bg-gray-100 text-gray-900"
+      }`}
+    >
+      <div className="flex items-center justify-between mb-1">
+        <div className="text-xs opacity-70">{isUser ? "You" : "Assistant"}</div>
+        <div className="flex items-center gap-1">
+          {/* Copy (both sides) */}
+          <Button
+            size="icon"
+            variant={isUser ? "secondary" : "ghost"}
+            className={`h-7 w-7 ${isUser ? "bg-blue-600/40 text-white hover:bg-blue-600/60" : ""}`}
+            onClick={onCopy}
+            title="Copy"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </Button>
+
+          {/* Save (assistant only) */}
+          {!isUser && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={onSave}
+              title="Save to notes"
+            >
+              <Bookmark className="h-3.5 w-3.5" />
+            </Button>
+          )}
+
+          {/* Feedback (assistant only) */}
+          {!isUser && (
+            <>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`h-7 w-7 ${fb === "up" ? "text-green-600" : ""}`}
+                onClick={() => {
+                  setFb("up");
+                  onFeedback?.("up");
+                }}
+                title="Helpful"
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className={`h-7 w-7 ${fb === "down" ? "text-red-600" : ""}`}
+                onClick={() => {
+                  setFb("down");
+                  onFeedback?.("down");
+                }}
+                title="Not helpful"
+              >
+                <ThumbsDown className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Content: Markdown for assistant, plain text for user */}
+      {isUser ? (
+        <div className="text-sm leading-relaxed whitespace-pre-wrap">{msg.text}</div>
+      ) : (
+        <div className="prose prose-sm dark:prose-invert max-w-none">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {msg.text}
+          </ReactMarkdown>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default ChatPage;

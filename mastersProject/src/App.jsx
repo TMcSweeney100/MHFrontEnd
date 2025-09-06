@@ -7,7 +7,7 @@ import Faq from './Components/faq/faq';
 import Routine from './Components/routine/routine';
 import Dashboard from "./Components/dashboard/dashboard";
 import DashboardSide from "./Components/dashboard/dashboardSide";
-// import MoodForm from "./Components/MoodForm.jsx";
+import MoodForm from "./Components/mood/MoodForm.jsx";
 
 import { AuthProvider } from "./Components/contexts/authContexts";
 import RootLayout from "./Components/layout/rootLayout";
@@ -34,7 +34,7 @@ function App() {
         <Route path="/faq" element={<Faq />} />
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/routine" element={<Routine />} />
-        {/* <Route path="/mood" element={<MoodForm />} /> */}
+        <Route path="/mood" element={<MoodForm />} />
         <Route path="/alcohol" element={<AlcoholLanding/>}/>
         <Route path="/alcoholForm" element={<AlcoholProfileForm/>}/>
          <Route path="/dayTracker" element={<DayTracker/>}/> 

@@ -86,17 +86,9 @@ const data = {
           url: "/alcohol",
         },
         {
-          title: "Team",
+          title: "Check-in",
           url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
+        }
       ],
     },
   ],

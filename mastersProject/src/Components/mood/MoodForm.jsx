@@ -1,9 +1,9 @@
 import React, { useState } from "react"
 import { useAuth } from "../contexts/authContexts"
-import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Slider } from "@/Components/ui/slider"
+import { Input } from "@/Components/ui/input"
+import { Badge } from "@/Components/ui/badge"
+import { Button } from "@/Components/ui/button"
 import {
   Command,
   CommandGroup,
@@ -11,10 +11,10 @@ import {
   CommandInput,
   CommandList,
   CommandEmpty
-} from "@/components/ui/command"
+} from "@/Components/ui/command"
 
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/Components/ui/label"
+import { Textarea } from "@/Components/ui/textarea"
 import ComboboxDemo from "../combobox-demo"
 import { ComboboxPopoverTags } from "../ui/combobox-popover-tags"
 import { ComboboxPopoverActivites } from "../ui/combobox-popover-activites"

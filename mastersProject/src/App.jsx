@@ -8,6 +8,7 @@ import Routine from './Components/routine/routine';
 import Dashboard from "./Components/dashboard/dashboard";
 import DashboardSide from "./Components/dashboard/dashboardSide";
 import MoodForm from "./Components/mood/MoodForm.jsx";
+import AlcoholReview from "./Components/alcohol/alcoholReview";
 
 import { AuthProvider } from "./Components/contexts/authContexts";
 import RootLayout from "./Components/layout/rootLayout";
@@ -35,6 +36,7 @@ function App() {
         <Route path="/chat" element={<ChatPage />} />
         <Route path="/routine" element={<Routine />} />
         <Route path="/mood" element={<MoodForm />} />
+    <Route path="/alcohol/review" element={<AlcoholReview/>} />
         <Route path="/alcohol" element={<AlcoholLanding/>}/>
         <Route path="/alcoholForm" element={<AlcoholProfileForm/>}/>
          <Route path="/dayTracker" element={<DayTracker/>}/> 

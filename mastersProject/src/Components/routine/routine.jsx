@@ -2,18 +2,23 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/authContexts";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { Button } from "../ui/button";
 
-// import API helpers (these prepend VITE_API_BASE_URL automatically)
+import { Card } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+
+// API helpers (prepend VITE_API_BASE_URL automatically)
 import { get, post, del } from "@/lib/api";
 
 const ROUTINE_PATH = "/routine";
 
-const Routine = () => {
+// Small helper to title-case section names
+const title = (s) => s[0].toUpperCase() + s.slice(1);
+
+export default function Routine() {
   const navigate = useNavigate();
   const { currentUser } = useAuth();
-
-  const handleNavigation = () => navigate("/dashboard");
 
   const [activities, setActivities] = useState({
     morning: [],
@@ -21,16 +26,11 @@ const Routine = () => {
     evening: [],
   });
 
-  const [showAddActivityMorn, setShowAddActivityMorn] = useState(false);
-  const [showAddActivityEve, setShowAddActivityEve] = useState(false);
-  const [showAddActivityAfter, setShowAddActivityAfter] = useState(false);
+  // single inline add row instead of 3 different modals
+  const [adding, setAdding] = useState(null); // 'morning' | 'afternoon' | 'evening' | null
+  const [newName, setNewName] = useState("");
 
-  const [newActivity, setNewActivity] = useState({
-    name: "",
-    timeOfDay: "morning",
-  });
-
-  // fetch existing routine
+  // ------------------ Load ------------------
   useEffect(() => {
     const fetchRoutine = async () => {
       if (!currentUser?.uid) return;
@@ -48,34 +48,35 @@ const Routine = () => {
     fetchRoutine();
   }, [currentUser]);
 
-  const saveRoutine = async (updatedActivities) => {
+  // ------------------ Persist ------------------
+  const saveRoutine = async (updated) => {
     if (!currentUser?.uid) return;
     try {
       await post(`${ROUTINE_PATH}`, {
         userId: currentUser.uid,
-        ...updatedActivities,
+        ...updated,
       });
     } catch (err) {
-      console.error("Save routine error", err);
+      console.error("Save routine error:", err);
     }
   };
 
-  const handleAddActivity = () => {
-    if (newActivity.name.trim() === "") return;
+  // ------------------ Actions ------------------
+  const addActivity = (timeOfDay) => {
+    const name = newName.trim();
+    if (!name) return;
 
     setActivities((prev) => {
       const updated = {
         ...prev,
-        [newActivity.timeOfDay]: [
-          ...prev[newActivity.timeOfDay],
-          { name: newActivity.name, completed: false },
-        ],
+        [timeOfDay]: [...prev[timeOfDay], { name, completed: false }],
       };
       saveRoutine(updated);
       return updated;
     });
 
-    setNewActivity({ name: "", timeOfDay: "morning" });
+    setNewName("");
+    setAdding(null);
   };
 
   const deleteTask = async (timeOfDay, index) => {
@@ -106,178 +107,108 @@ const Routine = () => {
     });
   };
 
+  const handleBack = () => navigate("/dashboard");
+
+  // ------------------ UI ------------------
+  const Section = ({ timeOfDay }) => {
+    const list = activities[timeOfDay] || [];
+    const isAdding = adding === timeOfDay;
+
+    return (
+      <Card className="flex-1 p-5 rounded-2xl border bg-card shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-semibold">{title(timeOfDay)}</h2>
+          {!isAdding ? (
+            <Button size="sm" onClick={() => { setAdding(timeOfDay); setNewName(""); }}>
+              <FontAwesomeIcon icon="fa-solid fa-plus" className="mr-2" />
+              Add
+            </Button>
+          ) : (
+            <div className="flex items-end gap-2">
+              <div className="space-y-1">
+                <Label htmlFor={`${timeOfDay}-new`}>New activity</Label>
+                <Input
+                  id={`${timeOfDay}-new`}
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder={`Add a ${timeOfDay} task…`}
+                  className="w-56"
+                />
+              </div>
+              <Button size="sm" onClick={() => addActivity(timeOfDay)}>Add</Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setAdding(null); setNewName(""); }}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
+
+        <ul className="space-y-2">
+          {list.length > 0 ? (
+            list.map((activity, idx) => (
+              <li
+                key={`${timeOfDay}-${idx}-${activity.name}`}
+                className="flex items-center justify-between rounded-md border p-2 hover:bg-muted/50 transition"
+              >
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={!!activity.completed}
+                    onChange={() => toggleActivityCompletion(timeOfDay, idx)}
+                    className="h-4 w-4 rounded border-muted-foreground/40"
+                  />
+                  <span className={activity.completed ? "line-through text-muted-foreground" : ""}>
+                    {activity.name}
+                  </span>
+                </label>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-red-500 hover:text-red-600"
+                  onClick={() => deleteTask(timeOfDay, idx)}
+                  title="Delete"
+                >
+                  <FontAwesomeIcon icon="trash" />
+                </Button>
+              </li>
+            ))
+          ) : (
+            <li className="text-sm text-muted-foreground italic">No activities yet.</li>
+          )}
+        </ul>
+      </Card>
+    );
+  };
+
   return (
-    <div className=" ">
-      <h1 className="text-4xl font-extrabold text-center mb-8">Daily Routine</h1>
-
-      <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
-        {["morning", "afternoon", "evening"].map((timeOfDay) => (
-          <div key={timeOfDay} className="flex-1 bg-white shadow rounded-lg p-4 flex flex-col">
-            <h2 className="text-2xl font-semibold capitalize mb-4">{timeOfDay}</h2>
-
-            <ul className="flex-1 space-y-2 overflow-y-auto">
-              {(activities[timeOfDay].length || []) > 0 ? (
-                activities[timeOfDay].map((activity, idx) => (
-                  <li
-                    key={idx}
-                    className="group flex items-center justify-between p-2 border-b last:border-b-0 hover:bg-gray-200 rounded transition"
-                    onClick={() => toggleActivityCompletion(timeOfDay, idx)}
-                  >
-                    <label className="flex-1 flex items-center space-x-2">
-                      <span className={activity.completed ? "line-through text-gray-400" : ""}>
-                        {activity.name}
-                      </span>
-                    </label>
-                    <FontAwesomeIcon
-                      icon="trash"
-                      className="text-red-500 opacity-0 group-hover:opacity-100 cursor-pointer transition"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteTask(timeOfDay, idx);
-                      }}
-                    />
-                  </li>
-                ))
-              ) : (
-                <li className="text-gray-500 italic">No activities yet.</li>
-              )}
-            </ul>
-
-            <button
-              onClick={() => {
-                setNewActivity({ name: "", timeOfDay });
-                if (timeOfDay === "evening") setShowAddActivityEve(true);
-                else if (timeOfDay === "morning") setShowAddActivityMorn(true);
-                else setShowAddActivityAfter(true);
-              }}
-              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition"
-            >
-              <FontAwesomeIcon icon="fa-solid fa-plus" beatFade />
-            </button>
-          </div>
-        ))}
+    <div className="min-h-screen bg-muted/30 py-10 px-4">
+      {/* Back button */}
+      <div className="mb-4">
+        <Button variant="outline" onClick={handleBack}>
+          <FontAwesomeIcon icon="fa-solid fa-left-long" className="mr-2" />
+          Back to dashboard
+        </Button>
       </div>
 
-      {/* Morning modal */}
-      {showAddActivityMorn && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold">Add New Activity</h3>
-            <input
-              type="text"
-              placeholder="Activity Name"
-              value={newActivity.name}
-              onChange={(e) =>
-                setNewActivity({ ...newActivity, name: e.target.value, timeOfDay: "morning" })
-              }
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  handleAddActivity();
-                  setShowAddActivityMorn(false);
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setShowAddActivityMorn(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+      <div className="mx-auto w-full max-w-6xl">
+        <div className="mb-6">
+          <h1 className="text-3xl font-semibold leading-tight">Daily Routine</h1>
+          <p className="text-sm text-muted-foreground">
+            Build small habits for morning, afternoon, and evening.
+          </p>
         </div>
-      )}
 
-      {/* Afternoon modal */}
-      {showAddActivityAfter && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold">Add New Activity</h3>
-            <input
-              type="text"
-              placeholder="Activity Name"
-              value={newActivity.name}
-              onChange={(e) => {
-                setNewActivity({ ...newActivity, name: e.target.value, timeOfDay: "afternoon" });
-              }}
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  handleAddActivity();
-                  setShowAddActivityAfter(false);
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setShowAddActivityAfter(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          <Section timeOfDay="morning" />
+          <Section timeOfDay="afternoon" />
+          <Section timeOfDay="evening" />
         </div>
-      )}
-
-      {/* Evening modal */}
-      {showAddActivityEve && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-lg w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-bold">Add New Evening Activity</h3>
-            <input
-              type="text"
-              placeholder="Activity Name"
-              value={newActivity.name}
-              onChange={(e) =>
-                setNewActivity({ ...newActivity, name: e.target.value, timeOfDay: "evening" })
-              }
-              className="w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            />
-            <div className="flex justify-end space-x-2">
-              <button
-                onClick={() => {
-                  handleAddActivity();
-                  setShowAddActivityEve(false);
-                }}
-                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-              >
-                Add
-              </button>
-              <button
-                onClick={() => setShowAddActivityEve(false)}
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Dashboard navigation */}
-      <div className="absolute top-5 left-6 mt-2 mb-2 ">
-        <button
-          onClick={handleNavigation}
-          className="px-6 py-2 bg-gray-500 text-white rounded hover:bg-gray-900 transition"
-        >
-          <FontAwesomeIcon icon="fa-solid fa-left-long" />
-        </button>
-      </div>
-
-      <div>
-        <Button variant="outline">Click Me</Button>
       </div>
     </div>
   );
-};
-
-export default Routine;
+}

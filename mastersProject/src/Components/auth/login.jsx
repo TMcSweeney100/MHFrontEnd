@@ -22,7 +22,7 @@ const Login = () => {
       try {
         await doSignInwithEmailAndPassword(email, password);
         console.log("User signed in successfully");
-        navigate("/dashboard"); // Redirect to dashboard or home
+        navigate("/routine"); // Redirect to dashboard or home
       } catch (error) {
         setErrorMessage("Invalid email or password.");
         console.error(error.message);

@@ -189,10 +189,7 @@ export default function Routine() {
     <div className="min-h-screen bg-muted/30 py-10 px-4">
       {/* Back button */}
       <div className="mb-4">
-        <Button variant="outline" onClick={handleBack}>
-          <FontAwesomeIcon icon="fa-solid fa-left-long" className="mr-2" />
-          Back to dashboard
-        </Button>
+       
       </div>
 
       <div className="mx-auto w-full max-w-6xl">

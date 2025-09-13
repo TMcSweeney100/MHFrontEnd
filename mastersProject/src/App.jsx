@@ -9,7 +9,7 @@ import Dashboard from "./Components/dashboard/dashboard";
 import DashboardSide from "./Components/dashboard/dashboardSide";
 import MoodForm from "./Components/mood/MoodForm.jsx";
 import AlcoholReview from "./Components/alcohol/alcoholReview";
-
+import Contact from "./Components/faq/Contact";
 import { AuthProvider } from "./Components/contexts/authContexts";
 import RootLayout from "./Components/layout/rootLayout";
 import ChatPage from "./Components/chat/chatPage";
@@ -42,7 +42,8 @@ function App() {
          <Route path="/dayTracker" element={<DayTracker/>}/> 
         <Route path="/moodGraph" element={<MoodGraph/>}/>
         <Route path="/insight" element={<MoodEntriesCarousel/>}/>
-
+        <Route path="/contact" element={<Contact/>}/>
+        
         </Route>
         {/* Default Route (Redirect to Login) */}
         <Route path="/" element={<Login />} />

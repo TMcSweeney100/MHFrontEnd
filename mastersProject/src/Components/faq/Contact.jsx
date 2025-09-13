@@ -13,7 +13,7 @@ import { Loader2, Mail, Send, Phone, MapPin } from "lucide-react";
 import { useAuth } from "../contexts/authContexts"; // same pattern as Chat/Notes
 import { post } from "@/lib/api"; // same env-based helper used elsewhere
 
-const SUPPORT_EMAIL = "support@example.com";
+const SUPPORT_EMAIL = "tim.mcsweeney.2024@mumail.ie";
 
 function Contact() {
   const { currentUser } = useAuth();
